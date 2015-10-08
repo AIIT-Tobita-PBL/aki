@@ -10,13 +10,13 @@ from lib import textParser
 class MarcovModel:
     #クラス変数
     ENDMARK = '__END__'
-    MAXNUM  = 10
 
     #コンストラクタ
     def __init__(self):
         self.dic = {}
         self.starts = {}
         self.parser = textParser.TextParser()
+        self.prevComment = ""
 
     #メソッド
     #テキストファイルを読み込んで学習
@@ -32,23 +32,30 @@ class MarcovModel:
 
     #コメント生成
     def generate(self, keywords):
-        count = 0
-        maxNum = MarcovModel.MAXNUM
+        LOOPMAX = 100
+        WORDMAX = 100
         dicLen = len(self.dic)
-        if maxNum > dicLen:
-            maxNum = dicLen
-        w1 = ""
-        w2 = ""
-        (w1, w2) = self.__getStartPhrase(keywords)
-        sentence = w1 + w2
-        while count < maxNum:
-            tmp = random.choice(self.dic[(w1, w2)])
-            if tmp == MarcovModel.ENDMARK:
+        if WORDMAX > dicLen:
+            WORDMAX = dicLen
+        loopCnt = 0
+        while loopCnt < LOOPMAX:
+            w1 = ""
+            w2 = ""
+            (w1, w2) = self.__getStartPhrase(keywords)
+            comment = w1 + w2
+            wordCount = 0
+            while wordCount < WORDMAX:
+                tmp = random.choice(self.dic[(w1, w2)])
+                if tmp == MarcovModel.ENDMARK:
+                    break
+                comment += tmp
+                w1, w2 = w2, tmp
+                wordCount += 1
+            if comment != self.prevComment:
                 break
-            sentence += tmp
-            w1, w2 = w2, tmp
-            count += 1
-        return sentence
+            loopCnt += 1
+        self.prevComment = comment
+        return comment
 
     #辞書ファイル(json)のセーブ
     def save(self, dicFile="dic.dump", startsFile="starts.dump"):
@@ -100,21 +107,23 @@ class MarcovModel:
         for tpl in self.starts.keys():
             for keyword in keywords:
                 if tpl[0] == keyword:
-                    if selectedTuple == ("", ""):
-                        selectedTuple = tpl
-                    else:
-                        selectedTuple = self.__selectPhrase(tpl, selectedTuple)
+                    selectedTuple = self.__selectPhrase(tpl, selectedTuple)
         if selectedTuple == ("", ""):
             selectedTuple = random.choice(self.starts.keys())
         return selectedTuple
 
     #文頭フレーズ候補が複数ある場合の選択ロジック（学習時の登場回数が多いほうが選ばれ易くなる）
-    def __selectPhrase(self, tpl1, tpl2):
+    def __selectPhrase(self, tpl1, tpl2 = ("","")):
         cnt1 = self.starts[tpl1]
-        cnt2 = self.starts[tpl2]
+        cnt2 = 1
+        randWeight = 1
+        if tpl2 != ("", ""):
+            cnt2 = self.starts[tpl2]
         selectedTuple = tpl1
         totalCnt = cnt1 + cnt2
-        r = random.randint(1, totalCnt)
-        if r > cnt1:
+        r = random.randint(1, totalCnt + randWeight)
+        if r > totalCnt:
+            selectedTuple = random.choice(self.starts.keys())
+        elif r > cnt1:
             selectedTuple = tpl2
         return selectedTuple

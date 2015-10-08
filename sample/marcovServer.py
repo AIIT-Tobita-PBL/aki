@@ -35,6 +35,12 @@ while True:
     p = textParser.TextParser(rcvmsg.encode('utf-8'))
     keywords = p.phraseList
     s_msg = m.generate(keywords)
+    '''
+    while True:
+        s_msg = m.generate(keywords)
+        if s_msg != rcvmsg:
+            break
+    '''
     print s_msg
     clientsock.sendall(s_msg.encode('utf-8'))
     #clientsock.sendall(s_msg)

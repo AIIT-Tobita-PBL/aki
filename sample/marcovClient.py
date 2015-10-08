@@ -37,5 +37,11 @@ while True:
     p = textParser.TextParser(rcvmsg.encode('utf-8'))
     keywords = p.phraseList
     c_msg = m.generate(keywords)
+    '''
+    while True:
+        c_msg = m.generate(keywords)
+        if c_msg != rcvmsg:
+            break
+    '''
     time.sleep(1)
 clientsock.close()
